@@ -20,7 +20,6 @@ const (
 func out(source VRASource, params OutParams) (version interface{}, metadata []interface{}, err error) {
 	log.Println("Authenticating with vRealize Automation...")
 	cspClient := csp.New(source.APIToken)
-	accessToken, err := cspClient.GetAccessToken()
 	if err != nil {
 		return nil, nil, fmt.Errorf("Error while authenticating:%w", err)
 	}
@@ -28,7 +27,7 @@ func out(source VRASource, params OutParams) (version interface{}, metadata []in
 
 	log.Println("Fetching pipeline ID from name...")
 	csClient := vra.New(cspClient)
-	pipelineID, err := csClient.GetPipelineIDFromName(source.Pipeline, accessToken)
+	pipelineID, err := csClient.GetPipelineIDFromName(source.Pipeline)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Error while getting pipeline ID from name:%w", err)
 	}

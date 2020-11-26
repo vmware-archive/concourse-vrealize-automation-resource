@@ -131,7 +131,7 @@ func (csClient *Client) GetPipelineExecution(executionID string) (PipelineExecut
 }
 
 // GetPipelineIDFromName returns pipline ID of the given pipeline name
-func (csClient *Client) GetPipelineIDFromName(pipelineName string, authToken string) (string, error) {
+func (csClient *Client) GetPipelineIDFromName(pipelineName string) (string, error) {
 	// Construct API URL with query param encoding
 	baseURL, _ := url.Parse(vraAPIBaseURL)
 	baseURL.Path += pipelineIDURIPath
