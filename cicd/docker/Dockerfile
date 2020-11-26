@@ -1,3 +1,6 @@
+# Copyright 2020 program was created by VMware, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 FROM golang:alpine AS builder
 
 RUN apk update && apk add --no-cache git ca-certificates && update-ca-certificates

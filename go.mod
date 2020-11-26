@@ -1,3 +1,6 @@
+// Copyright 2020 program was created by VMware, Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 module github.com/vmware/concourse-vrealize-automation-resource
 
 go 1.14
