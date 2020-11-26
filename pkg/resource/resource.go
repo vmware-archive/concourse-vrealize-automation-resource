@@ -1,3 +1,6 @@
+// Copyright 2020 program was created by VMware, Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 package resource
 
 // VRASource holds the source configuration
@@ -25,6 +28,11 @@ type OutParams struct {
 	Changeset string `json:"changeset"`
 }
 
+type MetadataField struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 // Source returns pointer to the source definition struct
 func (r *VRAResource) Source() interface{} {
 	return r.Src
@@ -42,7 +50,5 @@ func (r *VRAResource) Params() (params interface{}) {
 
 // Out Puts the resource and returns the new version and metadata
 func (r *VRAResource) Out(dir string) (version interface{}, metadata []interface{}, err error) {
-	var metadataSlice []interface{} = make([]interface{}, 1)
-	metadataSlice[0] = "TODO"
-	return VRAVersion{Value: "TODO"}, metadataSlice, nil
+	return out(*r.Src, *r.OutParams)
 }
