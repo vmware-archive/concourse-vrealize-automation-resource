@@ -15,7 +15,7 @@ resource_types:
 - name: vra
   type: docker-image
   source:
-    repository: vmware/concourse-vra-resource
+    repository: projects.registry.vmware.com/concourse-vra-resource/concourse-vra-resource
     tag: latest # For reproducible builds, use a specific version tag
 ```
 
@@ -71,7 +71,7 @@ resource_types:
 - name: vra
   type: docker-image
   source:
-    repository: vmware/concourse-vra-resource
+    repository: projects.registry.vmware.com/concourse-vra-resource/concourse-vra-resource
     tag: latest
 resources:
 - name: vra-pipeline
