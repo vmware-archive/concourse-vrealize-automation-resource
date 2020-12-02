@@ -13,18 +13,18 @@ if [ $# -eq 0 ]; then
 fi
 
 # Repo details
-LABEL="concourse-vra-rt"
-REPO_PATH="registry.docker.io"
+LABEL="concourse-vra-resource"
+REPO_PATH="projects.registry.vmware.com/concourse-vra-resource"
 TAG="$LABEL:$VERSION"
 
 # Login to repo
-docker login --username $REPO_USERNAME --password $REPO_PASSWORD
+docker login $REPO_PATH --username $REPO_USERNAME --password $REPO_PASSWORD
 
 # Build the image
-docker build -t cmbucicd/$TAG -f ../docker/Dockerfile ../../.
+docker build -t $REPO_PATH/$TAG -f ../docker/Dockerfile ../../.
 
 # Push the image
-docker push "cmbucicd/$TAG"
+docker push $REPO_PATH/$TAG
 
 # Remove the local image
-docker rmi "cmbucicd/$TAG"
+docker rmi $REPO_PATH/$TAG
