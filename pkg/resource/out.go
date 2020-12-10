@@ -4,6 +4,7 @@
 package resource
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -13,11 +14,12 @@ import (
 )
 
 const (
-	waitTimeoutMinutes  = 1440 // 24 hours
-	pollIntervalSeconds = 5
+	defaultWaitTimeoutMinutes = 1440 // 24 hours
+	pollIntervalSeconds       = 30
 )
 
 func out(source VRASource, params OutParams) (version interface{}, metadata []interface{}, err error) {
+	// Authenticate
 	log.Println("Authenticating with vRealize Automation...")
 	cspClient := csp.New(source.APIToken)
 	if err != nil {
@@ -25,6 +27,7 @@ func out(source VRASource, params OutParams) (version interface{}, metadata []in
 	}
 	log.Println("vRealize Automation authentication is successful")
 
+	// Fetch Pipeline ID
 	log.Println("Fetching pipeline ID from name...")
 	csClient := vra.New(cspClient)
 	pipelineID, err := csClient.GetPipelineIDFromName(source.Pipeline)
@@ -33,10 +36,12 @@ func out(source VRASource, params OutParams) (version interface{}, metadata []in
 	}
 	log.Println("Pipeline ID is fetched successfully: " + pipelineID)
 
+	// Execute vRealize Automation pipeline
 	log.Println("Triggering vRealize Automation pipeline...")
-	inputMap := map[string]string{"Changeset": params.Changeset}
+
+	// Construct pipeline input params
 	exeReq := vra.PipelineExecutionReq{Comments: "Triggered by Concourse CI",
-		Input: inputMap}
+		Input: params.Input}
 	execResp, err := csClient.ExecutePipeline(pipelineID, exeReq)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Error while executing vRealize Automation pipeline:%w", err)
@@ -46,54 +51,91 @@ func out(source VRASource, params OutParams) (version interface{}, metadata []in
 	// Do not wait for the execution to be completed if wait is set to false
 	if !params.Wait {
 		var metadataSlice []interface{} = make([]interface{}, 1)
-		metadataSlice = append(metadataSlice, MetadataField{Name: "vRealize Automation pipeline execution ID:", Value: execResp.ExecutionID})
+		metadataSlice = append(metadataSlice, MetadataField{Name: "executionId", Value: execResp.ExecutionID})
 		return VRAVersion{Value: "TODO"}, metadataSlice, nil
 	}
 
-	endSignal := make(chan bool, 1)
-	timeout := time.After(time.Minute * waitTimeoutMinutes)
-	pollInt := time.Second * pollIntervalSeconds
+	// Use timeout value from config if provided
+	var finalWaitTimeout int
+	if params.WaitTimeout > 0 {
+		finalWaitTimeout = params.WaitTimeout
+	} else {
+		finalWaitTimeout = defaultWaitTimeoutMinutes
+	}
 
-	var pipelineExec vra.PipelineExecution
-	log.Println("Waiting for vRealize Automation pipeline to complete...")
-	for {
-		select {
-		case <-endSignal:
-			log.Println("vRealize Automation pipeline finished execution with status: " + pipelineExec.Status)
-			var metadataSlice []interface{} = make([]interface{}, 1)
-			metadataSlice = append(metadataSlice, MetadataField{Name: "Execution ID:", Value: execResp.ExecutionID})
-			metadataSlice = append(metadataSlice, MetadataField{Name: "Status:", Value: pipelineExec.Status})
+	// Wait for the execution to finish with timeout
+	// Channels for polling and timing out
+	pollChannel := time.Tick(time.Second * pollIntervalSeconds)
+	timeoutChannel := time.After(time.Minute * time.Duration(finalWaitTimeout))
 
-			for outputParam, outputParamVal := range pipelineExec.Output {
-				metadataSlice = append(metadataSlice, MetadataField{Name: "Pipeline Output: " + outputParam, Value: outputParamVal})
-			}
+	// Buffered channels to receive pipeline execution and errors
+	pipelineExecChannel := make(chan vra.PipelineExecution, 1)
+	errorChannel := make(chan error, 1)
 
-			for _, stageName := range pipelineExec.StageOrder {
-				stageExec := pipelineExec.Stages[stageName]
-				for _, taskName := range stageExec.TaskOrder {
-					taskExec := stageExec.Tasks[taskName]
-					switch taskExec.Type {
-					case "Jenkins":
-						metadataSlice = append(metadataSlice, MetadataField{Name: stageName + " (s) > " + taskName + " (t)", Value: "Status: " + taskExec.Status + ", Job URL:" + taskExec.Output["jobUrl"].(string)})
-					default:
-						metadataSlice = append(metadataSlice, MetadataField{Name: stageName + " (s) > " + taskName + " (t)", Value: "Status: " + taskExec.Status})
-					}
+	// Keep getting the latest status of pipeline execution
+	// in a separate Go routine
+	go func() {
+		for {
+			select {
+			case <-timeoutChannel:
+				errorChannel <- errors.New("Timedout while waiting for vRealize Automation pipeline to complete")
+				return
+			case <-pollChannel:
+				pipelineExec, err := csClient.GetPipelineExecution(execResp.ExecutionID)
+				if err != nil {
+					errorChannel <- fmt.Errorf("Error while getting pipeline status::%w", err)
+					return
+				}
+				log.Println("vRealize Automation pipeline's current status: " + pipelineExec.Status)
+				if pipelineExec.Status == "COMPLETED" || pipelineExec.Status == "FAILED" {
+					pipelineExecChannel <- pipelineExec
+					return
 				}
 			}
-			return VRAVersion{Value: "TODO"}, metadataSlice, nil
-		case <-timeout:
-			break
-		default:
-			pipelineExec, err = csClient.GetPipelineExecution(execResp.ExecutionID)
-			if err != nil {
-				return nil, nil, fmt.Errorf("Error while getting pipeline status::%w", err)
-			}
-
-			if pipelineExec.Status == "COMPLETED" || pipelineExec.Status == "FAILED" {
-				endSignal <- true
-			}
-			log.Println("vRealize Automation pipeline's current status: " + pipelineExec.Status + ". Still waiting...")
 		}
-		time.Sleep(pollInt)
+	}()
+
+	log.Println("Waiting for vRealize Automation pipeline to complete...")
+	select {
+	case pipelineExec := <-pipelineExecChannel:
+		// Executions is either completed or failed
+		log.Println("vRealize Automation pipeline finished execution with status: " + pipelineExec.Status)
+		outputMeta := processOutput(pipelineExec)
+		return VRAVersion{Value: "TODO"}, outputMeta, nil
+	case err := <-errorChannel:
+		return VRAVersion{Value: "TODO"}, nil, err
 	}
+}
+
+func processOutput(execution vra.PipelineExecution) []interface{} {
+	var metadataSlice []interface{} = make([]interface{}, 1)
+
+	// Add execution ID and overall pipeline status
+	metadataSlice = append(metadataSlice, MetadataField{Name: "executionId", Value: execution.ID})
+	metadataSlice = append(metadataSlice, MetadataField{Name: "status", Value: execution.Status})
+
+	// Add Output params
+	for outputParam, outputParamVal := range execution.Output {
+		metadataSlice = append(metadataSlice, MetadataField{Name: "output~" + outputParam, Value: outputParamVal})
+	}
+
+	// Add stage and tasks execution details
+	for _, stageName := range execution.StageOrder {
+		stageExec := execution.Stages[stageName]
+		for _, taskName := range stageExec.TaskOrder {
+			taskExec := stageExec.Tasks[taskName]
+
+			// Add task status
+			metadataSlice = append(metadataSlice, MetadataField{Name: stageName + "~" + taskName + "~status", Value: taskExec.Status})
+
+			// Based on task type, add additional data
+			switch taskExec.Type {
+			case "Jenkins":
+				metadataSlice = append(metadataSlice, MetadataField{Name: stageName + "~" + taskName + "~jobUrl", Value: taskExec.Output["jobUrl"].(string)})
+				// TODO: Add more cases for other task types
+			}
+		}
+	}
+
+	return metadataSlice
 }

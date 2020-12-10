@@ -24,8 +24,9 @@ type VRAResource struct {
 
 // OutParams holds the out task params
 type OutParams struct {
-	Wait      bool   `json:"wait"`
-	Changeset string `json:"changeset"`
+	Wait        bool              `json:"wait"`
+	WaitTimeout int               `json:"waitTimeout"`
+	Input       map[string]string `json:"input"`
 }
 
 type MetadataField struct {
