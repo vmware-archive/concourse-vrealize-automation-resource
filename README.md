@@ -52,6 +52,7 @@ jobs:
   - put: vra-pipeline
     params:
       wait: true
+      waitTimeout: 120
       input: # key-value pairs (map).
         key1: val1
         key2: val2
@@ -60,6 +61,7 @@ jobs:
 #### Parameters
 
 * `wait`: *Required.* Set to true if Concourse pipeline has to wait until vRealize Automation pipeline execution completes. Otherwise set it to false.
+* `waitTimeout`: *Optional.* Waiting timeout value in minutes for vRealize Automation pipeline execution. Default value is 1440 minutes (24 hours). This custom value is considered only when wait is set to true.
 * `input`: *Optional.* Input to vRealize Automation pipeline. This param takes key-value pairs and passes them to vRealize Automation pipeline as Input Parameters.
 
 
@@ -87,6 +89,7 @@ jobs:
   - put: vra-pipeline
     params:
       wait: true
+      waitTimeout: 120
       input:
         changeset: 5d459e220d7810deb2f62df4a4hd698ce64cf5ff
         developer: vishweshwar

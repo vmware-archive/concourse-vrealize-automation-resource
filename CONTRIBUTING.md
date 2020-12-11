@@ -4,6 +4,11 @@ The Concourse vRealize Automation Resource project team welcomes contributions f
 
 If you plan on contributing code to add/enhance features and fix bugs, please create a pull request.
 
+ - [Fork](https://help.github.com/articles/fork-a-repo/) the [vRealize Automation Resource](https://github.com/vmware/concourse-vrealize-automation-resource) into your Github account.
+ - Clone the Forked repo and make required changes
+ - Push your code to Fork and [submit a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/)
+
+
 And to report a bug, please open an issue.
 
 CICD for this project is currently maintained with in VMware only. 
