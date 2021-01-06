@@ -76,6 +76,73 @@ func GetHeadersCustomRetry(URL string, headers map[string]string, retryCount int
 	return processResponse(resp), err
 }
 
+//Get makes an HTTP call to given URL with basic authentication and returns response as struct.
+func GetBasicAuth(getUrl string, username string, password string) (Response, error) {
+	return GetBasicAuthCustomRetry(getUrl, username, password, -1, -1)
+}
+
+//Get makes an HTTP call to given URL with basic authentication and returns response as struct.
+//In case of error it retries with default retry count and retry wait time.
+func GetBasicAuthRetry(getUrl string, username string, password string) (Response, error) {
+	return GetBasicAuthCustomRetry(getUrl, username, password, defaultRetryCount, defaultRetryWaitSeconds)
+}
+
+//Get makes an HTTP call to given URL with basic authentication and returns response as struct.
+//In case of error it retries with custom retry count and retry wait time.
+//Pass 0 for retry wait time to retry without waiting.
+func GetBasicAuthCustomRetry(getUrl string, username string, password string, retryCount int, retryWaitSeconds time.Duration) (Response, error) {
+	request := getNewRestyRequest(retryCount, retryWaitSeconds)
+	resp, err := request.
+		SetBasicAuth(username, password).
+		Get(getUrl)
+	return processResponse(resp), err
+}
+
+//Get makes an HTTP call to given URL with custom authentication and returns response as struct.
+func GetCustomAuth(getUrl string, token string) (Response, error) {
+	return GetCustomAuthCustomRetry(getUrl, token, -1, -1)
+}
+
+//Get makes an HTTP call to given URL with custom authentication and returns response as struct.
+//In case of error it retries with default retry count and retry wait time
+func GetCustomAuthRetry(getUrl string, token string) (Response, error) {
+	return GetCustomAuthCustomRetry(getUrl, token, defaultRetryCount, defaultRetryWaitSeconds)
+}
+
+//Get makes an HTTP call to given URL with custom authentication and returns response as struct.
+//In case of error it retries with custom retry count and retry wait time.
+//Pass 0 for retry wait time to retry without waiting.
+func GetCustomAuthCustomRetry(getUrl string, token string, retryCount int, retryWaitSeconds time.Duration) (Response, error) {
+	request := getNewRestyRequest(retryCount, retryWaitSeconds)
+	resp, err := request.
+		SetAuthToken(token).
+		Get(getUrl)
+	return processResponse(resp), err
+}
+
+// Get makes an HTTP call to given URL with headers and custom auth.
+func GetHeadersCustomAuth(getUrl string, headers map[string]string, token string) (Response, error) {
+	return GetHeadersCustomAuthCustomRetry(getUrl, headers, -1, -1, token)
+}
+
+// Get makes an HTTP call to given URL with headers and custom auth.
+//In case of error it retries with default retry count and retry wait time
+func GetHeadersCustomAuthRetry(getUrl string, headers map[string]string, token string) (Response, error) {
+	return GetHeadersCustomAuthCustomRetry(getUrl, headers, defaultRetryCount, defaultRetryWaitSeconds, token)
+}
+
+// Get makes an HTTP call to given URL with headers and custom auth.
+//In case of error it retries with custom retry count and retry wait time
+//Pass 0 for retry wait time to retry without waiting.
+func GetHeadersCustomAuthCustomRetry(getUrl string, headers map[string]string, retryCount int, retryWaitSeconds time.Duration, token string) (Response, error) {
+	request := getNewRestyRequest(retryCount, retryWaitSeconds)
+	resp, err := request.
+		SetAuthToken(token).
+		SetHeaders(headers).
+		Get(getUrl)
+	return processResponse(resp), err
+}
+
 // Post makes an HTTP call to given URL and returns response
 func Post(URL string, requestBody string) (Response, error) {
 	return PostHeadersCustomRetry(URL, requestBody, nil, -1, -1)
@@ -126,6 +193,143 @@ func PostHeadersFormDataCustomRetry(URL string, formData map[string]string, head
 	resp, err := request.
 		SetHeaders(headers).
 		Post(URL)
+	return processResponse(resp), err
+}
+
+//Post makes an HTTP call to given URL with basic authentication and returns response as struct.
+func PostBasicAuth(getUrl string, requestBody string, username string, password string) (Response, error) {
+	return PostBasicAuthCustomRetry(getUrl, requestBody, username, password, -1, -1)
+}
+
+//Post makes an HTTP call to given URL with basic authentication and returns response as struct.
+//In case of error it retries with default retry count and retry wait time
+func PostBasicAuthRetry(getUrl string, requestBody string, username string, password string) (Response, error) {
+	return PostBasicAuthCustomRetry(getUrl, requestBody, username, password, defaultRetryCount, defaultRetryWaitSeconds)
+}
+
+//Post makes an HTTP call to given URL with basic authentication and returns response as struct.
+//In case of error it retries with custom retry count and retry wait time
+//Pass 0 for retry wait time to retry without waiting.
+func PostBasicAuthCustomRetry(url string, requestBody string, username string, password string, retryCount int, retryWaitSeconds time.Duration) (Response, error) {
+	request := getNewRestyRequest(retryCount, retryWaitSeconds)
+	if requestBody != "" {
+		request.
+			SetBody(requestBody)
+	}
+	resp, err := request.
+		SetBasicAuth(username, password).
+		Post(url)
+	return processResponse(resp), err
+}
+
+//Post makes an HTTP call to given URL with custom authentication and returns response as struct.
+func PostCustomAuth(getUrl string, requestBody string, token string) (Response, error) {
+	return PostCustomAuthCustomRetry(getUrl, requestBody, token, -1, -1)
+}
+
+//Post makes an HTTP call to given URL with custom authentication and returns response as struct.
+//In case of error it retries with default retry count and retry wait time
+func PostCustomAuthRetry(getUrl string, requestBody string, token string) (Response, error) {
+	return PostCustomAuthCustomRetry(getUrl, requestBody, token, defaultRetryCount, defaultRetryWaitSeconds)
+}
+
+//Post makes an HTTP call to given URL with custom authentication and returns response as struct.
+//In case of error it retries with custom retry count and retry wait time
+//Pass 0 for retry wait time to retry without waiting.
+func PostCustomAuthCustomRetry(url string, requestBody string, token string, retryCount int, retryWaitSeconds time.Duration) (Response, error) {
+	request := getNewRestyRequest(retryCount, retryWaitSeconds)
+	if requestBody != "" {
+		request.
+			SetBody(requestBody)
+	}
+	resp, err := request.
+		SetAuthToken(token).
+		Post(url)
+	return processResponse(resp), err
+}
+
+// HttpPut makes PUT HTTP call to given URL and returns response as struct.
+func Put(URL string, requestBody string) (Response, error) {
+	return PutHeadersCustomRetry(URL, requestBody, nil, -1, -1)
+}
+
+// HttpPutHeaders makes PUT HTTP call to given URL with headers and returns response as struct.
+func PutHeaders(URL string, requestBody string, headers map[string]string) (Response, error) {
+	return PutHeadersCustomRetry(URL, requestBody, headers, -1, -1)
+}
+
+// HttpPutHeadersRetry makes PUT HTTP call to given URL with headers and returns response as struct.
+// In case of error it retries with default retry count and retry wait time
+func PutHeadersRetry(URL string, requestBody string, headers map[string]string) (Response, error) {
+	return PutHeadersCustomRetry(URL, requestBody, headers, defaultRetryCount, defaultRetryWaitSeconds)
+}
+
+// HttpPutHeadersCustomRetry makes PUT HTTP call to given URL with headers and returns response as struct.
+// In case of error it retries with custom retry count and retry wait time.
+// Pass 0 for retry wait time to retry without waiting.
+func PutHeadersCustomRetry(URL string, requestBody string, headers map[string]string, retryCount int, retryWaitSeconds time.Duration) (Response, error) {
+	request := getNewRestyRequest(retryCount, retryWaitSeconds)
+	if requestBody != "" {
+		request.
+			SetBody(requestBody)
+	}
+
+	resp, err := request.
+		SetHeaders(headers).
+		Put(URL)
+	return processResponse(resp), err
+}
+
+//Put makes an HTTP call to given URL with basic authentication and returns response as struct.
+func PutBasicAuth(getUrl string, requestBody string, username string, password string) (Response, error) {
+	return PutBasicAuthCustomRetry(getUrl, requestBody, username, password, -1, -1)
+}
+
+//Put makes an HTTP call to given URL with basic authentication and returns response as struct.
+//In case of error it retries with default retry count and retry wait time
+func PutBasicAuthRetry(getUrl string, requestBody string, username string, password string) (Response, error) {
+	return PutBasicAuthCustomRetry(getUrl, requestBody, username, password, defaultRetryCount, defaultRetryWaitSeconds)
+}
+
+//Put makes an HTTP call to given URL with basic authentication and returns response as struct.
+//In case of error it retries with custom retry count and retry wait time
+//Pass 0 for retry wait time to retry without waiting.
+func PutBasicAuthCustomRetry(url string, requestBody string, username string, password string, retryCount int, retryWaitSeconds time.Duration) (Response, error) {
+	request := getNewRestyRequest(retryCount, retryWaitSeconds)
+	if requestBody != "" {
+		request.
+			SetBody(requestBody)
+	}
+	resp, err := request.
+		SetBasicAuth(username, password).
+		Put(url)
+	return processResponse(resp), err
+}
+
+//Put makes an HTTP call to given URL with custom authentication and returns response as struct.
+//In case of error it retries with default retry count and retry wait time
+func PutCustomAuth(getUrl string, requestBody string, token string) (Response, error) {
+	return PutCustomAuthCustomRetry(getUrl, requestBody, token, -1, -1)
+}
+
+//Put makes an HTTP call to given URL with custom authentication and returns response as struct.
+//In case of error it retries with default retry count and retry wait time
+func PutCustomAuthRetry(getUrl string, requestBody string, token string) (Response, error) {
+	return PutCustomAuthCustomRetry(getUrl, requestBody, token, defaultRetryCount, defaultRetryWaitSeconds)
+}
+
+//Put makes an HTTP call to given URL with custom authentication and returns response as struct.
+//In case of error it retries with custom retry count and retry wait time
+//Pass 0 for retry wait time to retry without waiting.
+func PutCustomAuthCustomRetry(url string, requestBody string, token string, retryCount int, retryWaitSeconds time.Duration) (Response, error) {
+	request := getNewRestyRequest(retryCount, retryWaitSeconds)
+	if requestBody != "" {
+		request.
+			SetBody(requestBody)
+	}
+	resp, err := request.
+		SetAuthToken(token).
+		Put(url)
 	return processResponse(resp), err
 }
 
